@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# ARG_POSITIONAL_SINGLE([regexp],[What files to look for in the shortterm directory],['*'])
+# ARG_POSITIONAL_SINGLE([regexp],[What files to look for in the shortterm directory (grep regexp applied to filename)],['.*'])
 # ARG_OPTIONAL_SINGLE([shortterm-time],[s],[Shortterm storage cap],[31])
 # ARG_OPTIONAL_SINGLE([longterm-time],[l],[Longterm storage cap],[24])
-# ARG_OPTIONAL_SINGLE([longerm-regexp],[r],[Longterm content match],[-01($|[^-]])
-# ARG_HELP([The general script's help msg])
+# ARG_OPTIONAL_SINGLE([longterm-regexp],[r],[Longterm content match (grep regexp applied to filename)],[-01\($\|[^-]\)])
+# ARG_HELP([The script assumes that directories 'shortterm' and 'longterm' exist in the working directory. Matching files in shortterm are either deleted or moved to the longterm directory if they match the longterm regexp. The script assures that there the number of files in shortterm and longterm directories won't exceed the given limit.])
 # DEFINE_SCRIPT_DIR([])
 # ARGBASH_GO()
 # needed because of Argbash --> m4_ignore([
@@ -33,20 +33,20 @@ begins_with_short_option()
 
 # THE DEFAULTS INITIALIZATION - POSITIONALS
 _positionals=()
-_arg_regexp='*'
+_arg_regexp='.*'
 # THE DEFAULTS INITIALIZATION - OPTIONALS
 _arg_shortterm_time="31"
 _arg_longterm_time="24"
-_arg_longerm_regexp="-01($|[^-]"
+_arg_longterm_regexp="-01\($\|[^-]\)"
 
 print_help ()
 {
-	printf "%s\n" "The general script's help msg"
-	printf 'Usage: %s [-s|--shortterm-time <arg>] [-l|--longterm-time <arg>] [-r|--longerm-regexp <arg>] [-h|--help] [<regexp>]\n' "$0"
-	printf "\t%s\n" "<regexp>: What files to look for in the shortterm directory (default: '"'*'"')"
+	printf "%s\n" "The script assumes that directories 'shortterm' and 'longterm' exist in the working directory. Matching files in shortterm are either deleted or moved to the longterm directory if they match the longterm regexp. The script assures that there the number of files in shortterm and longterm directories won't exceed the given limit."
+	printf 'Usage: %s [-s|--shortterm-time <arg>] [-l|--longterm-time <arg>] [-r|--longterm-regexp <arg>] [-h|--help] [<regexp>]\n' "$0"
+	printf "\t%s\n" "<regexp>: What files to look for in the shortterm directory (grep regexp applied to filename) (default: '"'.*'"')"
 	printf "\t%s\n" "-s,--shortterm-time: Shortterm storage cap (default: '"31"')"
 	printf "\t%s\n" "-l,--longterm-time: Longterm storage cap (default: '"24"')"
-	printf "\t%s\n" "-r,--longerm-regexp: Longterm content match (default: '"-01($|[^-]"')"
+	printf "\t%s\n" "-r,--longterm-regexp: Longterm content match (grep regexp applied to filename) (default: '-01\($\|[^-]\)')"
 	printf "\t%s\n" "-h,--help: Prints help"
 }
 
@@ -78,16 +78,16 @@ parse_commandline ()
 			-l*)
 				_arg_longterm_time="${_key##-l}"
 				;;
-			-r|--longerm-regexp)
+			-r|--longterm-regexp)
 				test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
-				_arg_longerm_regexp="$2"
+				_arg_longterm_regexp="$2"
 				shift
 				;;
-			--longerm-regexp=*)
-				_arg_longerm_regexp="${_key##--longerm-regexp=}"
+			--longterm-regexp=*)
+				_arg_longterm_regexp="${_key##--longterm-regexp=}"
 				;;
 			-r*)
-				_arg_longerm_regexp="${_key##-r}"
+				_arg_longterm_regexp="${_key##-r}"
 				;;
 			-h|--help)
 				print_help
@@ -133,8 +133,11 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || die "Couldn't dete
 
 #
 
-source "$script_dir/src.sh"
+source "$script_dir/lib.sh"
 
-handle_directory "$_arg_shortterm_regexp" "shortterm" "$_arg_shortterm_time" "$_arg_longterm_regexp" "longterm" "$_arg_longterm_time"
+args=("$_arg_regexp" "shortterm" "$_arg_shortterm_time" "$_arg_longterm_regexp" "longterm" "$_arg_longterm_time")
+
+
+handle_directory "${args[@]}"
 
 # ] <-- needed because of Argbash

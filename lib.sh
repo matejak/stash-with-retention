@@ -2,9 +2,13 @@
 
 put_matching_files_in_directory_to_array()
 {
-	readarray -t "$3" < <(printf "%s\n" "$2/"$1 | sort)
-	# TODO: consider
-	# readarray -t "$3" < <(ls $ls_args)
+	local temp fname
+	readarray -t temp < <(ls -r $ls_args -- "$2"  | grep -e "$1")
+	eval "$3=()"
+	for fname in "${temp[@]}"
+	do
+		eval "$3+=(\"$2/$fname\")"
+	done
 }
 
 # number of elements of array named $1 minus $2
@@ -39,7 +43,7 @@ divide_array_into_mis_and_matching()
 	for _idx in $(seq 0 $((_len - 1)))
 	do
 		eval "_value=\${$1[$_idx]}"
-		if printf "%s" "$_value" | grep -q "$2"
+		if printf "%s" "$_value" | grep -q -e "$2"
 		then
 			eval "$3+=($_value)"
 		else
@@ -64,7 +68,7 @@ handle_directory()
 	get_past_n_from_array 'overflow_files' "$3" 'files_in_directory'
 	if test -n "$4"
 	then
-		divide_array_into_mis_and_matching 'overflow_files' 'files_to_relocate' 'files_to_delete' "$4"
+		divide_array_into_mis_and_matching 'overflow_files' "$4" 'files_to_relocate' 'files_to_delete'
 		if test "${#files_to_relocate[*]}" -gt 0
 		then
 			mkdir -p "$5"
@@ -76,4 +80,5 @@ handle_directory()
 		files_to_delete=("${overflow_files[@]}")
 	fi
 	test "${#files_to_delete[*]}" -gt 0 && rm -- "${files_to_delete[@]}"
+	true
 }
