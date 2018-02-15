@@ -52,6 +52,14 @@ divide_array_into_mis_and_matching()
 	done
 }
 
+
+delete_file_or_directory()
+{
+	# delete recursive if directory, otherwise attempt to delete normally
+	test -d "$1" && rm -r -- "$1" || rm -- "$1"
+}
+
+
 # $1: shortterm match
 # $2: shortterm directory
 # $3: shortterm max count
@@ -79,6 +87,13 @@ handle_directory()
 	else
 		files_to_delete=("${overflow_files[@]}")
 	fi
-	test "${#files_to_delete[*]}" -gt 0 && rm -- "${files_to_delete[@]}"
+
+	if test "${#files_to_delete[*]}" -gt 0
+	then
+		for entry in "${files_to_delete[@]}"
+		do
+			delete_file_or_directory "$entry"
+		done
+	fi
 	true
 }
